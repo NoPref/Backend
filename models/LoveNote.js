@@ -1,4 +1,3 @@
-// LoveNoteModel.js
 const mongoose = require('mongoose');
 
 const loveNoteSchema = new mongoose.Schema({
