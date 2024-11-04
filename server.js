@@ -6,6 +6,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs')
 
 const app = express();
 const port = 5000;
@@ -69,6 +70,31 @@ app.get('/api/photos', async (req, res) => {
     res.json(photos);
   } catch (err) {
     res.status(500).send(err);
+  }
+});
+
+
+// Delete photo endpoint
+app.delete('/api/photos/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const photo = await Photo.findByIdAndDelete(id);
+
+    if (!photo) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+
+    // Delete the photo file from uploads directory
+    fs.unlink(`uploads/${photo.url.split('/').pop()}`, (err) => {
+      if (err) console.error('Failed to delete photo file:', err);
+    });
+
+    // Broadcast the photo deletion to all connected clients
+    io.emit('photoDeleted', id);
+    res.json({ message: 'Photo deleted successfully', id });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete the photo' });
   }
 });
 
