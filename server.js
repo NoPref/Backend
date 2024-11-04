@@ -1,18 +1,22 @@
 const express = require('express');
-const http = require('http');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
 const port = 5000;
+
+// Wrap app in an HTTP server
 const server = http.createServer(app);
+
+// Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
+    origin: '*',  // Adjust for production to specific origins
+    methods: ['GET', 'POST', 'DELETE']
+  }
 });
 
 app.use(cors());
@@ -26,7 +30,6 @@ const loveNoteSchema = new mongoose.Schema({
 
 const LoveNote = mongoose.model('LoveNote', loveNoteSchema);
 
-// Endpoint to get all notes
 app.get('/api/lovenotes', async (req, res) => {
   try {
     const notes = await LoveNote.find();
@@ -36,7 +39,6 @@ app.get('/api/lovenotes', async (req, res) => {
   }
 });
 
-// Endpoint to create a new note
 app.post('/api/lovenotes', async (req, res) => {
   try {
     const newNote = new LoveNote({
@@ -44,8 +46,8 @@ app.post('/api/lovenotes', async (req, res) => {
     });
     await newNote.save();
     
-    // Emit event to all connected clients
-    io.emit('newNote', newNote);
+    // Emit a 'noteAdded' event with the new note data
+    io.emit('noteAdded', newNote);
 
     res.status(201).json({ note: newNote });
   } catch (err) {
@@ -53,7 +55,6 @@ app.post('/api/lovenotes', async (req, res) => {
   }
 });
 
-// Endpoint to delete a note by ID
 app.delete('/api/lovenotes/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -64,8 +65,8 @@ app.delete('/api/lovenotes/:id', async (req, res) => {
       return res.status(404).json({ error: 'Note not found' });
     }
 
-    // Emit event to update clients after deletion
-    io.emit('deleteNote', id);
+    // Emit a 'noteDeleted' event with the note's ID
+    io.emit('noteDeleted', id);
 
     res.json({ message: 'Note deleted successfully', id });
   } catch (err) {
@@ -73,7 +74,6 @@ app.delete('/api/lovenotes/:id', async (req, res) => {
   }
 });
 
-// Start server
 server.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
