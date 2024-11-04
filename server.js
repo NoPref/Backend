@@ -75,6 +75,7 @@ app.get('/api/photos', async (req, res) => {
 
 
 // Delete photo endpoint
+// Delete photo endpoint
 app.delete('/api/photos/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -88,12 +89,15 @@ app.delete('/api/photos/:id', async (req, res) => {
     // Delete the photo file from uploads directory
     const fileName = photo.url.split('/').pop(); // Extract filename from URL
     fs.unlink(path.join('uploads', fileName), (err) => {
-      if (err) console.error('Failed to delete photo file:', err);
-    });
+      if (err) {
+        console.error('Failed to delete photo file:', err);
+        return res.status(500).json({ error: 'Failed to delete photo file' });
+      }
 
-    // Broadcast the photo deletion to all connected clients
-    io.emit('photoDeleted', id);
-    res.json({ message: 'Photo deleted successfully', id });
+      // Only emit after the file has been deleted
+      io.emit('photoDeleted', id);
+      res.json({ message: 'Photo deleted successfully', id });
+    });
   } catch (err) {
     console.error('Error deleting photo:', err);
     res.status(500).json({ error: 'Failed to delete the photo' });
