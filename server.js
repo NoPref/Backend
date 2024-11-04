@@ -6,6 +6,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const multer = require('multer');
 const path = require('path')
+const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 const port = 5000;
@@ -88,18 +89,19 @@ app.delete('/api/lovenotes/:id', async (req, res) => {
 
 app.post('/api/uploadPhoto', upload.single('photo'), async (req, res) => {
   try {
-    const url = `https://your-backend-url.com/uploads/${req.file.filename}`;
-    const timestamp = new Date().toISOString().split('T')[0];
-    const newPhoto = new Photo({ url, timestamp });
-    await newPhoto.save();
+    const fileUrl = `https://backend-production-8c13.up.railway.app/uploads/${req.file.filename}`;
+    const timestamp = new Date();
 
-    io.emit('photoAdded', newPhoto); // Notify clients
+    // Broadcast the new photo to all connected clients
+    io.emit('photoUploaded', { url: fileUrl, timestamp });
 
-    res.status(201).json(newPhoto);
-  } catch (err) {
-    res.status(500).send(err);
+    res.status(201).json({ message: 'Photo uploaded successfully', url: fileUrl, timestamp });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Photo upload failed' });
   }
 });
+
 
 app.get('/api/photos', async (req, res) => {
   try {
