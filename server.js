@@ -26,7 +26,7 @@ io.on('connection', (socket) => {
 });
 
 // Connect to the database and start the server
-const port = process.env.PORT || 8080;
+const port = 5000;
 connectDB().then(() => {
   server.listen(port, () => {
     console.log(`Server running on port ${port}`);
