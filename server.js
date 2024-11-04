@@ -23,6 +23,7 @@ const io = new Server(server, {
 });
 
 app.use(cors());
+app.use('/uploads', express.static('uploads'));
 app.use(bodyParser.json());
 
 const storage = multer.diskStorage({
