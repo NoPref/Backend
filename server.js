@@ -15,7 +15,7 @@ const port = 5000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*', // Allow all origins for now, can be restricted later
+    origin: '*',
     methods: ['GET', 'POST', 'DELETE']
   }
 });
@@ -31,7 +31,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-// MongoDB connection (replace with your MongoDB connection string)
+// MongoDB connection
 mongoose.connect('mongodb+srv://nopref:LifeLess23@love.n3a2u.mongodb.net/?retryWrites=true&w=majority', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -42,9 +42,15 @@ mongoose.connect('mongodb+srv://nopref:LifeLess23@love.n3a2u.mongodb.net/?retryW
 // Define schema for photos
 const photoSchema = new mongoose.Schema({
   url: String,
-  timestamp: { type: Date, default: Date.now }, // Default to current date
+  timestamp: { type: Date, default: Date.now },
 });
 const Photo = mongoose.model('Photo', photoSchema);
+
+// Define schema for love notes
+const loveNoteSchema = new mongoose.Schema({
+  note: String,
+});
+const LoveNote = mongoose.model('LoveNote', loveNoteSchema);
 
 // Multer configuration for storing uploaded files
 const storage = multer.diskStorage({
@@ -58,7 +64,7 @@ const upload = multer({ storage });
 
 // API Endpoints
 
-// 1. **Upload photo** endpoint
+// **Upload photo** endpoint
 app.post('/api/uploadPhoto', upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) {
@@ -69,7 +75,6 @@ app.post('/api/uploadPhoto', upload.single('photo'), async (req, res) => {
     const newPhoto = new Photo({ url: fileUrl });
     await newPhoto.save();
 
-    // Broadcast new photo to all clients
     io.emit('photoUploaded', { url: fileUrl, timestamp: newPhoto.timestamp, _id: newPhoto._id });
 
     res.status(201).json({ message: 'Photo uploaded successfully', url: fileUrl, timestamp: newPhoto.timestamp, _id: newPhoto._id });
@@ -79,10 +84,10 @@ app.post('/api/uploadPhoto', upload.single('photo'), async (req, res) => {
   }
 });
 
-// 2. **Fetch all photos** endpoint
+// **Fetch all photos** endpoint
 app.get('/api/photos', async (req, res) => {
   try {
-    const photos = await Photo.find().sort({ timestamp: -1 }); // Return photos sorted by newest first
+    const photos = await Photo.find().sort({ timestamp: -1 });
     res.json(photos);
   } catch (err) {
     console.error('Error fetching photos:', err);
@@ -90,7 +95,7 @@ app.get('/api/photos', async (req, res) => {
   }
 });
 
-// 3. **Delete photo** endpoint
+// **Delete photo** endpoint
 app.delete('/api/photos/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -100,10 +105,9 @@ app.delete('/api/photos/:id', async (req, res) => {
       return res.status(404).json({ message: 'Photo not found' });
     }
 
-    const fileName = path.basename(photo.url); // Get the filename from the URL
+    const fileName = path.basename(photo.url);
     const filePath = path.join(__dirname, 'uploads', fileName);
 
-    // Check if the file exists before attempting deletion
     if (fs.existsSync(filePath)) {
       fs.unlink(filePath, (err) => {
         if (err) {
@@ -111,7 +115,6 @@ app.delete('/api/photos/:id', async (req, res) => {
           return res.status(500).json({ message: 'Failed to delete photo file' });
         }
 
-        // Notify all clients of the deleted photo
         io.emit('photoDeleted', id);
         res.json({ message: 'Photo deleted successfully', id });
       });
@@ -122,6 +125,51 @@ app.delete('/api/photos/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting photo:', err);
     res.status(500).json({ message: 'Failed to delete the photo' });
+  }
+});
+
+// **Love Notes** Endpoints
+
+// Fetch all love notes
+app.get('/api/lovenotes', async (req, res) => {
+  try {
+    const notes = await LoveNote.find();
+    res.json(notes);
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+// Add new love note
+app.post('/api/lovenotes', async (req, res) => {
+  try {
+    const newNote = new LoveNote({
+      note: req.body.note,
+    });
+    await newNote.save();
+
+    io.emit('noteAdded', newNote);
+    res.status(201).json({ note: newNote });
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+// Delete love note by ID
+app.delete('/api/lovenotes/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedNote = await LoveNote.findByIdAndDelete(id);
+
+    if (!deletedNote) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    io.emit('noteDeleted', id);
+    res.json({ message: 'Note deleted successfully', id });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete the note' });
   }
 });
 
