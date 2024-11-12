@@ -14,6 +14,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+const formatDate = (timestamp) => {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('en-GB');  // Formats as DD/MM/YYYY
+};
+
 // Upload photo
 router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
   try {
@@ -24,6 +29,8 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
     const fileUrl = `https://backend-production-8c13.up.railway.app/uploads/${req.file.filename}`;
     const newPhoto = new Photo({ url: fileUrl });
     await newPhoto.save();
+
+    const formattedTimestamp = formatDate(newPhoto.timestamp);
 
     req.io.emit('photoUploaded', { url: fileUrl, timestamp: newPhoto.timestamp, _id: newPhoto._id });
     res.status(201).json({ message: 'Photo uploaded successfully', url: fileUrl, timestamp: newPhoto.timestamp, _id: newPhoto._id });
@@ -37,7 +44,13 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const photos = await Photo.find().sort({ timestamp: -1 });
-    res.json(photos);
+
+    const formattedPhotos = photos.map(photo => ({
+      ...photo.toObject(),
+      timestamp: formatDate(photo.timestamp)
+    }));
+
+    res.json(formattedPhotos);
   } catch (err) {
     console.error('Error fetching photos:', err);
     res.status(500).json({ message: 'Failed to fetch photos' });
