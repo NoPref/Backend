@@ -14,6 +14,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Helper function to format date as DD/MM/YYYY
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
   return date.toLocaleDateString('en-GB');  // Formats as DD/MM/YYYY
@@ -32,8 +33,8 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
 
     const formattedTimestamp = formatDate(newPhoto.timestamp);
 
-    req.io.emit('photoUploaded', { url: fileUrl, timestamp: newPhoto.timestamp, _id: newPhoto._id });
-    res.status(201).json({ message: 'Photo uploaded successfully', url: fileUrl, timestamp: newPhoto.timestamp, _id: newPhoto._id });
+    req.io.emit('photoUploaded', { url: fileUrl, timestamp: formattedTimestamp, _id: newPhoto._id });
+    res.status(201).json({ message: 'Photo uploaded successfully', url: fileUrl, timestamp: formattedTimestamp, _id: newPhoto._id });
   } catch (error) {
     console.error('Photo upload error:', error);
     res.status(500).json({ message: 'Photo upload failed' });
@@ -45,6 +46,7 @@ router.get('/', async (req, res) => {
   try {
     const photos = await Photo.find().sort({ timestamp: -1 });
 
+    // Format each photo's timestamp
     const formattedPhotos = photos.map(photo => ({
       ...photo.toObject(),
       timestamp: formatDate(photo.timestamp)
