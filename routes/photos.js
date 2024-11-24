@@ -1,17 +1,23 @@
+require('dotenv').config(); // Load environment variables
+
 const express = require('express');
 const multer = require('multer');
 const { google } = require('googleapis');
 const Photo = require('../models/Photo');
 const router = express.Router();
 
-// Load OAuth2 credentials for Google Drive
-const credentials = require('../config/credentials.json');  // Place your credentials.json here
-const { client_id, client_secret, redirect_uris } = credentials.installed;
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+// Load OAuth2 credentials from environment variables
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, GOOGLE_REFRESH_TOKEN, GOOGLE_DRIVE_FOLDER_ID } = process.env;
 
-// Set the refresh token here (from OAuth Playground or other means)
-const refreshToken = '1//04LZthDi1ZJC5CgYIARAAGAQSNwF-L9IrwaBpduEb4_TG2pUNTK6DmmfvsODbZa8DOvpzqwzT73eXvJmoySX5_ZJujVAAn1p6YHk'; // Put your refresh token here
-oAuth2Client.setCredentials({ refresh_token: refreshToken });
+// Set up OAuth2 client
+const oAuth2Client = new google.auth.OAuth2(
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI
+);
+
+// Set the refresh token
+oAuth2Client.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
 
 // Google Drive API setup
 const drive = google.drive({ version: 'v3', auth: oAuth2Client });
@@ -31,7 +37,7 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
   try {
     const fileMetadata = {
       name: fileName,
-      parents: ['1dT9C2jUmd8FWTFZXehKJVB8pBX_a37iE'],  // Specify the folder ID in your Google Drive
+      parents: [GOOGLE_DRIVE_FOLDER_ID],  // Use the folder ID from environment variables
     };
     const media = {
       mimeType,

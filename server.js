@@ -2,6 +2,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const app = require('./app');
 const connectDB = require('./db');
+require('dotenv').config();
 
 // Create HTTP server
 const server = http.createServer(app);
