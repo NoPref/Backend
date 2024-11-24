@@ -25,5 +25,6 @@ app.use((req, res, next) => {
 // Route handlers
 app.use('/api/lovenotes', require('./routes/lovenotes'));
 app.use('/api/photos', require('./routes/photos'));
+app.use('/api/reminders', require('./routes/reminders'));
 
 module.exports = app;
