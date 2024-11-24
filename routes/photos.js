@@ -1,17 +1,23 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { google } = require('googleapis');
 const Photo = require('../models/Photo');
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: 'uploads/',
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Load OAuth2 credentials for Google Drive
+const credentials = require('../config/credentials.json');  // Place your credentials.json here
+const { client_id, client_secret, redirect_uris } = credentials.installed;
+const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+// Set the refresh token here (from OAuth Playground or other means)
+const refreshToken = '1//04LZthDi1ZJC5CgYIARAAGAQSNwF-L9IrwaBpduEb4_TG2pUNTK6DmmfvsODbZa8DOvpzqwzT73eXvJmoySX5_ZJujVAAn1p6YHk'; // Put your refresh token here
+oAuth2Client.setCredentials({ refresh_token: refreshToken });
+
+// Google Drive API setup
+const drive = google.drive({ version: 'v3', auth: oAuth2Client });
+
+// Configure Multer for memory storage (no disk storage)
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Helper function to format date as DD/MM/YYYY
@@ -20,14 +26,51 @@ const formatDate = (timestamp) => {
   return date.toLocaleDateString('en-GB');  // Formats as DD/MM/YYYY
 };
 
-// Upload photo
+// Upload photo to Google Drive
+const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
+  try {
+    const fileMetadata = {
+      name: fileName,
+      parents: ['1dT9C2jUmd8FWTFZXehKJVB8pBX_a37iE'],  // Specify the folder ID in your Google Drive
+    };
+    const media = {
+      mimeType,
+      body: Buffer.from(fileBuffer, 'utf8'),
+    };
+
+    const res = await drive.files.create({
+      resource: fileMetadata,
+      media: media,
+      fields: 'id',
+    });
+
+    // Make the file publicly accessible
+    await drive.permissions.create({
+      fileId: res.data.id,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
+    });
+
+    // Generate a public URL
+    const url = `https://drive.google.com/uc?id=${res.data.id}`;
+    return url;
+  } catch (error) {
+    console.error('Error uploading to Google Drive:', error);
+    throw error;
+  }
+};
+
+// Upload photo route
 router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const fileUrl = `https://backend-production-8c13.up.railway.app/uploads/${req.file.filename}`;
+    // Upload the file to Google Drive
+    const fileUrl = await uploadToGoogleDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
     const newPhoto = new Photo({ url: fileUrl });
     await newPhoto.save();
 
@@ -41,7 +84,7 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
   }
 });
 
-// Fetch all photos
+// Fetch all photos route
 router.get('/', async (req, res) => {
   try {
     const photos = await Photo.find().sort({ timestamp: -1 });
@@ -59,7 +102,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Delete photo by ID
+// Delete photo by ID (from database and Google Drive)
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -69,23 +112,12 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Photo not found' });
     }
 
-    const fileName = path.basename(photo.url);
-    const filePath = path.join(__dirname, '../uploads', fileName);
+    const fileId = photo.url.split('id=')[1];  // Extract the Google Drive file ID from the URL
 
-    if (fs.existsSync(filePath)) {
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error('Failed to delete photo file:', err);
-          return res.status(500).json({ message: 'Failed to delete photo file' });
-        }
+    await drive.files.delete({ fileId });
 
-        req.io.emit('photoDeleted', id);
-        res.json({ message: 'Photo deleted successfully', id });
-      });
-    } else {
-      req.io.emit('photoDeleted', id);
-      res.json({ message: 'Photo deleted from database but file not found', id });
-    }
+    req.io.emit('photoDeleted', id);
+    res.json({ message: 'Photo deleted successfully', id });
   } catch (err) {
     console.error('Error deleting photo:', err);
     res.status(500).json({ message: 'Failed to delete the photo' });
