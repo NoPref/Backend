@@ -59,7 +59,7 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
     const res = await drive.files.create({
       resource: fileMetadata,
       media: media,
-      fields: 'id',
+      fields: 'id, webViewLink, webContentLink',
     });
 
     // Make the file publicly accessible
@@ -72,8 +72,9 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
     });
 
     console.log('Permissions Response:', permissionsRes.data);
+    console.log('Google Drive Response:', res.data);
 
-    return `https://drive.google.com/file/d/${res.data.id}/view?usp=sharing`;
+    return res.data.webContentLink || res.data.webViewLink;
   } catch (error) {
     console.error('Error uploading to Google Drive:', error.message);
     throw error;
