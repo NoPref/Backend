@@ -5,6 +5,7 @@ const { google } = require('googleapis');
 const { PassThrough } = require('stream');
 const Photo = require('../models/Photo');
 const router = express.Router();
+const path = require('path');
 
 // Load the service account key JSON file
 const serviceAccount = path.join(__dirname, '../birthday-442719-bafc4e875af0.json');
