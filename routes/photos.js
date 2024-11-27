@@ -7,18 +7,17 @@ const router = express.Router();
 const path = require('path');
 const { Readable } = require('stream');
 
-// Rebuild the service account key JSON dynamically
 const serviceAccountKey = {
-  type: process.env.type,
-  project_id: process.env.project_id,
-  private_key_id: process.env.private_key_id,
-  private_key: process.env.private_key.replace(/\\n/g, '\n'), // Ensure newlines are preserved
-  client_email: process.env.client_email,
-  client_id: process.env.client_id,
-  auth_uri: process.env.auth_uri,
-  token_uri: process.env.token_uri,
-  auth_provider_x509_cert_url: process.env.auth_provider_x509_cert_url,
-  client_x509_cert_url: process.env.client_x509_cert_url,
+  type: process.env.GOOGLE_TYPE,
+  project_id: process.env.GOOGLE_PROJECT_ID,
+  private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
+  private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  client_email: process.env.GOOGLE_CLIENT_EMAIL,
+  client_id: process.env.GOOGLE_CLIENT_ID,
+  auth_uri: process.env.GOOGLE_AUTH_URI,
+  token_uri: process.env.GOOGLE_TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.GOOGLE_AUTH_PROVIDER_CERT_URL,
+  client_x509_cert_url: process.env.GOOGLE_CLIENT_CERT_URL,
 };
 
 const auth = new google.auth.GoogleAuth({
