@@ -115,7 +115,12 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
     await newPhoto.save();
 
     // Emit the uploaded photo event for real-time updates
-    req.io.emit('photoUploaded', { url: fileUrl, _id: newPhoto._id });
+    req.io.emit('photoUploaded', {
+      _id: newPhoto._id,
+      id: fileId, // Extracted from Google Drive URL
+      url: fileUrl,
+      timestamp: formatDate(newPhoto.timestamp),
+    });
 
     // Send the success response
     res.status(201).json({ message: 'Photo uploaded successfully', url: fileUrl, _id: newPhoto._id });
