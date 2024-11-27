@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const { google } = require('googleapis');
-const { PassThrough } = require('stream');
 const Photo = require('../models/Photo');
 const router = express.Router();
 const path = require('path');
@@ -10,36 +9,12 @@ const path = require('path');
 // Load the service account key JSON file
 const serviceAccount = path.join(__dirname, '../birthday-442719-bafc4e875af0.json');
 
-// Configure Multer for memory storage
-
-
 // Google Drive API setup
 const auth = new google.auth.GoogleAuth({
   keyFile: serviceAccount,
-  scopes: ['https://www.googleapis.com/auth/drive.file'], // The service account only needs access to the Drive API
+  scopes: ['https://www.googleapis.com/auth/drive.file'],
 });
 
-
-// Load environment variables
-const { 
-  GOOGLE_CLIENT_ID, 
-  GOOGLE_CLIENT_SECRET, 
-  GOOGLE_REDIRECT_URI, 
-  GOOGLE_REFRESH_TOKEN, 
-  GOOGLE_DRIVE_FOLDER_ID 
-} = process.env;
-
-// Initialize OAuth2 client
-const oAuth2Client = new google.auth.OAuth2(
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI
-);
-
-// Set refresh token for OAuth2
-oAuth2Client.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
-
-// Set up Google Drive API
 const drive = google.drive({ version: 'v3', auth });
 
 // Configure Multer for in-memory storage
@@ -51,11 +26,11 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
   try {
     const fileMetadata = {
       name: fileName,
-      parents: ['1dT9C2jUmd8FWTFZXehKJVB8pBX_a37iE'], // The folder ID you shared with the service account
+      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
     };
     const media = {
-      mimeType: mimeType,
-      body: Buffer.from(fileBuffer, 'utf8'), // Use 'fileBuffer' directly for image uploads
+      mimeType,
+      body: fileBuffer,
     };
 
     const res = await drive.files.create({
@@ -73,12 +48,9 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
       },
     });
 
-    // Generate a public URL
-    const url = `https://drive.google.com/uc?id=${res.data.id}`;
-    return url;
+    return `https://drive.google.com/uc?id=${res.data.id}`;
   } catch (error) {
-    console.error('Error uploading to Google Drive:', error);
-    res.status(500).json({ message: 'Photo upload failed', error: error.message });
+    console.error('Error uploading to Google Drive:', error.message);
     throw error;
   }
 };
@@ -86,7 +58,7 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
 // Helper function to format date
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleDateString('en-GB'); // Format as DD/MM/YYYY
+  return date.toLocaleDateString('en-GB');
 };
 
 // Route to upload photo
@@ -96,7 +68,6 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Upload the file to Google Drive
     const fileUrl = await uploadToGoogleDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
     const newPhoto = new Photo({ url: fileUrl });
     await newPhoto.save();
@@ -104,7 +75,7 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
     req.io.emit('photoUploaded', { url: fileUrl, _id: newPhoto._id });
     res.status(201).json({ message: 'Photo uploaded successfully', url: fileUrl, _id: newPhoto._id });
   } catch (error) {
-    console.error('Photo upload error:', error);
+    console.error('Photo upload error:', error.message);
     res.status(500).json({ message: 'Photo upload failed' });
   }
 });
@@ -132,7 +103,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Photo not found' });
     }
 
-    const fileId = photo.url.split('id=')[1];  // Extract Google Drive file ID from URL
+    const fileId = photo.url.split('id=')[1];
     await drive.files.delete({ fileId });
 
     req.io.emit('photoDeleted', id);
