@@ -78,6 +78,7 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
     return url;
   } catch (error) {
     console.error('Error uploading to Google Drive:', error);
+    res.status(500).json({ message: 'Photo upload failed', error: error.message });
     throw error;
   }
 };
