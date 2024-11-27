@@ -130,10 +130,19 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const photos = await Photo.find().sort({ timestamp: -1 });
-    const formattedPhotos = photos.map(photo => ({
-      ...photo.toObject(),
-      timestamp: formatDate(photo.timestamp)
-    }));
+
+    // Format the photos with the extracted ID
+    const formattedPhotos = photos.map((photo) => {
+      const match = photo.url.match(/id=([^&]+)/); // Extract ID from the URL
+      const fileId = match ? match[1] : null;
+
+      return {
+        ...photo.toObject(),
+        id: fileId, // Add extracted ID
+        timestamp: formatDate(photo.timestamp),
+      };
+    });
+
     res.json(formattedPhotos);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch photos' });
