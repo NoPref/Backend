@@ -63,7 +63,7 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
     });
 
     // Make the file publicly accessible
-    await drive.permissions.create({
+    const permissionsRes = await drive.permissions.create({
       fileId: res.data.id,
       requestBody: {
         role: 'reader',
