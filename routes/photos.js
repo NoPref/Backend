@@ -35,7 +35,7 @@ const upload = multer({ storage });
 const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
   try {
     console.log('Service Account Keys:', serviceAccountKey);
-    console.log('File buffer:', fileBuffer);
+    console.log('File buffers:', fileBuffer);
     console.log('File name:', fileName);
     console.log('Mime type:', mimeType);
 
