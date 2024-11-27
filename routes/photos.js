@@ -152,18 +152,37 @@ router.get('/', async (req, res) => {
 // Route to delete photo by ID
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
+
   try {
+    // Delete photo from database
     const photo = await Photo.findByIdAndDelete(id);
     if (!photo) {
       return res.status(404).json({ message: 'Photo not found' });
     }
 
-    const fileId = photo.url.split('id=')[1];
+    // Extract fileId from the photo URL
+    const match = photo.url.match(/id=([^&]+)/);
+    const fileId = match ? match[1] : null;
+
+    if (!fileId) {
+      return res.status(400).json({ message: 'Invalid photo URL format' });
+    }
+
+    // Delete the file from Google Drive
     await drive.files.delete({ fileId });
 
+    // Notify frontend via Socket.io
     req.io.emit('photoDeleted', id);
+
+    // Respond with success
     res.json({ message: 'Photo deleted successfully', id });
   } catch (error) {
+    console.error('Error deleting photo:', error.response?.data || error.message);
+
+    if (error.code === 404) {
+      return res.status(404).json({ message: 'File not found on Google Drive' });
+    }
+
     res.status(500).json({ message: 'Failed to delete the photo' });
   }
 });
