@@ -51,7 +51,7 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
   try {
     const fileMetadata = {
       name: fileName,
-      parents: ['your-google-drive-folder-id'], // The folder ID you shared with the service account
+      parents: ['1dT9C2jUmd8FWTFZXehKJVB8pBX_a37iE'], // The folder ID you shared with the service account
     };
     const media = {
       mimeType: mimeType,
