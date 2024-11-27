@@ -39,6 +39,9 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
     console.log('File buffer:', fileBuffer);
     console.log('File name:', fileName);
     console.log('Mime type:', mimeType);
+    console.log('File Metadata:', fileMetadata);
+    console.log('Media:', media);
+
 
     const fileMetadata = {
       name: fileName,
