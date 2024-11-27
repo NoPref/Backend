@@ -110,6 +110,14 @@ router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
     // Upload the photo to Google Drive
     const fileUrl = await uploadToGoogleDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
 
+    const match = fileUrl.match(/id=([^&]+)/);
+    const fileId = match ? match[1] : null;
+
+    if (!fileId) {
+      console.error('Failed to extract fileId from fileUrl:', fileUrl);
+      return res.status(500).json({ message: 'Failed to upload photo: fileId extraction error' });
+    }
+
     // Save the file URL in the database
     const newPhoto = new Photo({ url: fileUrl });
     await newPhoto.save();
