@@ -35,13 +35,17 @@ const upload = multer({ storage });
 // Function to upload to Google Drive
 const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
   try {
+    console.log('Service Account Key:', serviceAccountKey);
+    console.log('File buffer:', fileBuffer);
+    console.log('File name:', fileName);
+    console.log('Mime type:', mimeType);
+
     const fileMetadata = {
       name: fileName,
       parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
     };
 
-    // Convert Buffer to Readable stream
-    const fileStream = Readable.from(fileBuffer);
+    const fileStream = Readable.from(fileBuffer); // Convert buffer to stream
 
     const media = {
       mimeType,
@@ -70,6 +74,7 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
   }
 };
 
+
 // Helper function to format date
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
@@ -80,6 +85,7 @@ const formatDate = (timestamp) => {
 router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) {
+      console.error('No file uploaded:', req.body);
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
