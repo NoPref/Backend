@@ -87,22 +87,40 @@ const formatDate = (timestamp) => {
 // Route to upload photo
 router.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
   try {
+    // Check if file was uploaded
     if (!req.file) {
       console.error('No file uploaded:', req.body);
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    // Log the file details to verify content
+    console.log('Uploaded File:', req.file);
+    console.log('File MIME Type:', req.file.mimetype);
+
+    // Validate MIME type (optional)
+    const validMimeTypes = ['image/jpeg', 'image/png'];
+    if (!validMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ message: 'Invalid file type' });
+    }
+
+    // Upload the photo to Google Drive
     const fileUrl = await uploadToGoogleDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
+
+    // Save the file URL in the database
     const newPhoto = new Photo({ url: fileUrl });
     await newPhoto.save();
 
+    // Emit the uploaded photo event for real-time updates
     req.io.emit('photoUploaded', { url: fileUrl, _id: newPhoto._id });
+
+    // Send the success response
     res.status(201).json({ message: 'Photo uploaded successfully', url: fileUrl, _id: newPhoto._id });
   } catch (error) {
     console.error('Photo upload error:', error.message);
     res.status(500).json({ message: 'Photo upload failed' });
   }
 });
+
 
 // Route to fetch all photos
 router.get('/', async (req, res) => {
