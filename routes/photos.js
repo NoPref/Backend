@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const { google } = require('googleapis');
+const { PassThrough } = require('stream');
 const Photo = require('../models/Photo');
 const router = express.Router();
 
@@ -34,14 +35,18 @@ const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5M
 // Function to upload to Google Drive
 const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
   try {
+    // Create a readable stream from the buffer
+    const bufferStream = new PassThrough();
+    bufferStream.end(fileBuffer);
+
     const fileMetadata = {
       name: fileName,
-      parents: [GOOGLE_DRIVE_FOLDER_ID],
+      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
     };
 
     const media = {
       mimeType: mimeType,
-      body: Buffer.from(fileBuffer),
+      body: bufferStream,  // Use stream here
     };
 
     const response = await drive.files.create({
