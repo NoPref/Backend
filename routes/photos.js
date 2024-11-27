@@ -22,7 +22,7 @@ const serviceAccountKey = {
 };
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: serviceAccountKey,
+  credentials: serviceAccountKey,
   scopes: ['https://www.googleapis.com/auth/drive.file'],
 });
 
