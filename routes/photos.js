@@ -71,7 +71,9 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
       },
     });
 
-    return `https://drive.google.com/uc?id=${res.data.id}`;
+    console.log('Permissions Response:', permissionsRes.data);
+
+    return `https://drive.google.com/file/d/${res.data.id}/view?usp=sharing`;
   } catch (error) {
     console.error('Error uploading to Google Drive:', error.message);
     throw error;
