@@ -5,6 +5,7 @@ const { google } = require('googleapis');
 const Photo = require('../models/Photo');
 const router = express.Router();
 const path = require('path');
+const { Readable } = require('stream'); 
 
 // Load the service account key JSON file
 const serviceAccount = path.join(__dirname, '../birthday-442719-bafc4e875af0.json');
@@ -28,9 +29,13 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
       name: fileName,
       parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
     };
+
+    // Convert Buffer to Readable stream
+    const fileStream = Readable.from(fileBuffer);
+
     const media = {
       mimeType,
-      body: fileBuffer,
+      body: fileStream,
     };
 
     const res = await drive.files.create({
