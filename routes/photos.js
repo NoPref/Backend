@@ -7,12 +7,8 @@ const router = express.Router();
 const path = require('path');
 const { Readable } = require('stream'); 
 
-// Load the service account key JSON file
-const serviceAccount = path.join(__dirname, '../birthday-442719-bafc4e875af0.json');
-
-// Google Drive API setup
 const auth = new google.auth.GoogleAuth({
-  keyFile: serviceAccount,
+  keyFile: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
   scopes: ['https://www.googleapis.com/auth/drive.file'],
 });
 
